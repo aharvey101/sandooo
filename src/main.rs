@@ -12,7 +12,7 @@ use tokio::task::JoinSet;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let path = home_dir().and_then(|a| Some(a.join("/.env"))).unwrap();
+    let path = home_dir().and_then(|a| Some(a.join(".env"))).unwrap();
     dotenv::from_path(&path)?;
 
     setup_logger().unwrap();
