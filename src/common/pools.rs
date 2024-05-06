@@ -6,6 +6,7 @@ use ethers::{
     providers::{Provider, Ws},
     types::{H160, H256},
 };
+use home::home_dir;
 use indicatif::{ProgressBar, ProgressStyle};
 use itertools::Itertools;
 use log::info;
@@ -116,14 +117,16 @@ pub async fn load_all_pools(
     match create_dir_all("cache") {
         _ => {}
     }
-    let cache_file = "cache/.cached-pools.csv";
-    let file_path = Path::new(cache_file);
-    let file_exists = file_path.exists();
+    let cache_file = home_dir()
+        .and_then(|a| Some(a.join("cache/.cached-pools.csv")))
+        .unwrap();
+
+    let file_exists = cache_file.exists();
     let file = OpenOptions::new()
         .write(true)
         .append(true)
         .create(true)
-        .open(file_path)
+        .open(&cache_file)
         .unwrap();
     let mut writer = csv::Writer::from_writer(file);
 
@@ -132,7 +135,7 @@ pub async fn load_all_pools(
     let mut v2_pool_cnt = 0;
 
     if file_exists {
-        let mut reader = csv::Reader::from_path(file_path)?;
+        let mut reader = csv::Reader::from_path(cache_file)?;
 
         for row in reader.records() {
             let row = row.unwrap();

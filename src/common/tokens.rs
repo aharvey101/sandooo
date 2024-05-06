@@ -4,9 +4,10 @@ use ethers::abi::parse_abi;
 use ethers::prelude::BaseContract;
 use ethers::providers::{call_raw::RawCall, Provider, Ws};
 use ethers::types::{spoof, BlockNumber, TransactionRequest, H160, U256, U64};
+use home::home_dir;
 use indicatif::{ProgressBar, ProgressStyle};
 use log::info;
-use std::{collections::HashMap, fs::OpenOptions, path::Path, str::FromStr, sync::Arc};
+use std::{collections::HashMap, fs::OpenOptions, str::FromStr, sync::Arc};
 
 use crate::common::bytecode::REQUEST_BYTECODE;
 use crate::common::pools::Pool;
@@ -62,14 +63,15 @@ pub async fn load_all_tokens(
     pools: &Vec<Pool>,
     prev_pool_id: i64,
 ) -> Result<HashMap<H160, Token>> {
-    let cache_file = "cache/.cached-tokens.csv";
-    let file_path = Path::new(cache_file);
-    let file_exists = file_path.exists();
+    let cache_file = home_dir()
+        .and_then(|a| Some(a.join("cache/.cached-tokens.csv")))
+        .unwrap();
+    let file_exists = cache_file.exists();
     let file = OpenOptions::new()
         .write(true)
         .append(true)
         .create(true)
-        .open(file_path)
+        .open(&cache_file)
         .unwrap();
     let mut writer = csv::Writer::from_writer(file);
 
@@ -77,7 +79,7 @@ pub async fn load_all_tokens(
     let mut token_id = 0;
 
     if file_exists {
-        let mut reader = csv::Reader::from_path(file_path)?;
+        let mut reader = csv::Reader::from_path(cache_file)?;
 
         for row in reader.records() {
             let row = row.unwrap();
