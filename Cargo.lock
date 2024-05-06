@@ -3421,6 +3421,7 @@ dependencies = [
  "foundry-evm-mini",
  "futures",
  "futures-util",
+ "home",
  "indicatif",
  "itertools 0.11.0",
  "log",

@@ -49,6 +49,7 @@ log = "0.4.17"
 fern = { version = "0.6.2", features = ["colored"] }
 chrono = "0.4.23"
 indicatif = "0.17.5"
+home = "0.5.9"
 
 [patch.crates-io]
 revm = { git = "https://github.com/bluealloy/revm/", rev = "80c909d6f242886cb26e6103a01d1a4bf9468426" }

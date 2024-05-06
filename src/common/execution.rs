@@ -4,7 +4,8 @@ use ethers::providers::{Middleware, Provider};
 use ethers::signers::{LocalWallet, Signer};
 use ethers::types::transaction::{eip2718::TypedTransaction, eip2930::AccessList};
 use ethers_flashbots::*;
-use serde::Deserialize;
+use log::{info, warn};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -13,7 +14,7 @@ use url::Url;
 use crate::common::abi::Abi;
 use crate::common::constants::Env;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SandoBundle {
     pub frontrun_tx: TypedTransaction,
     pub victim_txs: Vec<Transaction>,
@@ -68,7 +69,7 @@ impl Executor {
         let relay_url = Url::parse("https://relay.flashbots.net").unwrap();
 
         let client = SignerMiddleware::new(
-            FlashbotsMiddleware::new(provider.clone(), relay_url.clone(), identity.clone()),
+            FlashbotsMiddleware::new(provider.clone(), relay_url.clone(), owner.clone()),
             owner.clone(),
         );
 
@@ -214,15 +215,18 @@ impl Executor {
         let to = NameOrAddress::Address(self.bot_address);
         let front_nonce = common.1;
         let back_nonce = front_nonce + U256::from(1); // should increase nonce by 1
+
         let frontrun_tx = TypedTransaction::Eip1559(Eip1559TransactionRequest {
             to: Some(to.clone()),
             from: Some(common.0),
             data: Some(front_calldata),
             value: Some(U256::zero()),
             chain_id: Some(common.2),
-            max_priority_fee_per_gas: Some(U256::zero()),
+            max_priority_fee_per_gas: Some(
+                max_priority_fee_per_gas.to_owned() + 10_000_000_000 as u64,
+            ),
             max_fee_per_gas: Some(base_fee),
-            gas: Some(U256::from(front_gas_limit)),
+            gas: Some(U256::from(front_gas_limit + 10_000 as u64)),
             nonce: Some(front_nonce),
             access_list: front_access_list,
         });
@@ -232,9 +236,9 @@ impl Executor {
             data: Some(back_calldata),
             value: Some(U256::zero()),
             chain_id: Some(common.2),
-            max_priority_fee_per_gas: Some(max_priority_fee_per_gas),
+            max_priority_fee_per_gas: Some(max_priority_fee_per_gas + 10_000_000_000 as u64),
             max_fee_per_gas: Some(max_fee_per_gas),
-            gas: Some(U256::from(back_gas_limit)),
+            gas: Some(U256::from(back_gas_limit + 10_000 as u64)),
             nonce: Some(back_nonce),
             access_list: back_access_list,
         });
@@ -315,7 +319,7 @@ impl Executor {
             requests.push(tokio::task::spawn(send_bundle(
                 builder.clone(),
                 url.clone(),
-                self.identity.clone(),
+                self.owner.clone(),
                 bundle.clone(),
             )));
         }

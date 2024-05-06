@@ -293,6 +293,8 @@ pub async fn main_dish(
             }
         }
 
+        info!("victim tx hash: {:?}", victim_txs.clone()[0].hash);
+
         let sando_bundle = executor
             .create_sando_bundle(
                 victim_txs,

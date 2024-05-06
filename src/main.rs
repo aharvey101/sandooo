@@ -1,18 +1,20 @@
 use anyhow::Result;
 use ethers::providers::{Provider, Ws};
+use home::home_dir;
 use log::info;
-use std::sync::Arc;
-use tokio::sync::broadcast::{self, Sender};
-use tokio::task::JoinSet;
-
 use sandooo::common::constants::Env;
 use sandooo::common::streams::{stream_new_blocks, stream_pending_transactions, Event};
 use sandooo::common::utils::setup_logger;
 use sandooo::sandwich::strategy::run_sandwich_strategy;
+use std::sync::Arc;
+use tokio::sync::broadcast::{self, Sender};
+use tokio::task::JoinSet;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    dotenv::dotenv().ok();
+    let path = home_dir().and_then(|a| Some(a.join("/.env"))).unwrap();
+    dotenv::from_path(&path)?;
+
     setup_logger().unwrap();
 
     info!("Starting Sandooo");
