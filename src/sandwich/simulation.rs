@@ -456,10 +456,6 @@ impl BatchSandwich {
         bot_address: Option<H160>,
     ) -> Result<SimulatedSandwich> {
         let mut simulator = EvmSimulator::new(provider.clone(), owner, block_number);
-        let now = Instant::now();
-        if owner.is_some() {
-            info!("Now: start of sim {:?}", now.elapsed());
-        }
         // set ETH balance so that it's enough to cover gas fees
         match owner {
             None => {
@@ -511,18 +507,12 @@ impl BatchSandwich {
                 bot_address
             }
         };
-        if owner.is_some() {
-            info!("Now: before getting eth balance {:?}", now.elapsed());
-        }
         // check ETH, MC balance before any txs are run
         let eth_balance_before = simulator.get_eth_balance_of(simulator.owner);
         let mut mc_balances_before = HashMap::new();
         for (main_currency, _) in &starting_mc_values {
             let balance_before = simulator.get_token_balance(*main_currency, bot_address)?;
             mc_balances_before.insert(main_currency, balance_before);
-        }
-        if owner.is_some() {
-            info!("Now: After getting eth balance {:?}", now.elapsed());
         }
         // set base fee so that gas fees are taken into account
         simulator.set_base_fee(base_fee);
@@ -543,17 +533,11 @@ impl BatchSandwich {
                 _ => AccessList::default(),
             },
         };
-        if owner.is_some() {
-            info!("Now: frontrun: created access list: {:?}", now.elapsed());
-        }
         simulator.set_access_list(front_access_list.clone());
         let front_gas_used = match simulator.call(front_tx) {
             Ok(result) => result.gas_used,
             Err(_) => 0,
         };
-        if owner.is_some() {
-            info!("Now: after frontrun creation: {:?}", now.elapsed());
-        }
 
         // Victim Txs
         for victim_tx in victim_txs {
@@ -580,9 +564,6 @@ impl BatchSandwich {
                 .get_token_balance(*token, bot_address)
                 .unwrap_or_default();
             token_balances.insert(*token, token_balance);
-        }
-        if owner.is_some() {
-            info!("Now: after victim calc {:?}", now.elapsed());
         }
         simulator.set_base_fee(base_fee);
 
@@ -613,9 +594,6 @@ impl BatchSandwich {
         };
 
         simulator.set_base_fee(U256::zero());
-        if owner.is_some() {
-            info!("Now: after backrun {:?}", now.elapsed());
-        }
         let eth_balance_after = simulator.get_eth_balance_of(simulator.owner);
         let mut mc_balances_after = HashMap::new();
         for (main_currency, _) in &starting_mc_values {
@@ -665,9 +643,6 @@ impl BatchSandwich {
         let gas_cost = eth_used_as_gas_i256.as_i128();
         let revenue = profit - gas_cost;
 
-        if owner.is_some() {
-            info!("Now: after profit calculations {:?}", now.elapsed());
-        }
         let simulated_sandwich = SimulatedSandwich {
             revenue,
             profit,
