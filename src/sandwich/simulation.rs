@@ -7,6 +7,7 @@ use ethers::providers::{Provider, Ws};
 use ethers::types::{transaction::eip2930::AccessList, Bytes, H160, H256, I256, U256, U64};
 use log::info;
 use revm::primitives::{Bytecode, U256 as rU256};
+use std::time::{Instant, SystemTime};
 use std::{collections::HashMap, default::Default, str::FromStr, sync::Arc};
 
 use crate::common::bytecode::SANDOOO_BYTECODE;
@@ -138,7 +139,7 @@ pub async fn extract_swap_info(
 
     let mut logs = Vec::new();
     extract_logs(&frame, &mut logs);
-
+    // println!("Logs: {:?}", logs.clone());
     for log in &logs {
         match &log.topics {
             Some(topics) => {
@@ -161,7 +162,10 @@ pub async fn extract_swap_info(
                         let (main_currency, target_token, token0_is_main) =
                             match return_main_and_target_currency(token0, token1) {
                                 Some(out) => (out.0, out.1, out.0 == token0),
-                                None => continue,
+                                None => {
+                                    println!("No main currency?");
+                                    continue;
+                                }
                             };
 
                         let (in0, _, _, out1) = match ethers::abi::decode(
@@ -452,7 +456,10 @@ impl BatchSandwich {
         bot_address: Option<H160>,
     ) -> Result<SimulatedSandwich> {
         let mut simulator = EvmSimulator::new(provider.clone(), owner, block_number);
-
+        let now = Instant::now();
+        if owner.is_some() {
+            info!("Now: start of sim {:?}", now.elapsed());
+        }
         // set ETH balance so that it's enough to cover gas fees
         match owner {
             None => {
@@ -504,7 +511,9 @@ impl BatchSandwich {
                 bot_address
             }
         };
-
+        if owner.is_some() {
+            info!("Now: before getting eth balance {:?}", now.elapsed());
+        }
         // check ETH, MC balance before any txs are run
         let eth_balance_before = simulator.get_eth_balance_of(simulator.owner);
         let mut mc_balances_before = HashMap::new();
@@ -512,7 +521,9 @@ impl BatchSandwich {
             let balance_before = simulator.get_token_balance(*main_currency, bot_address)?;
             mc_balances_before.insert(main_currency, balance_before);
         }
-
+        if owner.is_some() {
+            info!("Now: After getting eth balance {:?}", now.elapsed());
+        }
         // set base fee so that gas fees are taken into account
         simulator.set_base_fee(base_fee);
 
@@ -532,11 +543,17 @@ impl BatchSandwich {
                 _ => AccessList::default(),
             },
         };
+        if owner.is_some() {
+            info!("Now: frontrun: created access list: {:?}", now.elapsed());
+        }
         simulator.set_access_list(front_access_list.clone());
         let front_gas_used = match simulator.call(front_tx) {
             Ok(result) => result.gas_used,
             Err(_) => 0,
         };
+        if owner.is_some() {
+            info!("Now: after frontrun creation: {:?}", now.elapsed());
+        }
 
         // Victim Txs
         for victim_tx in victim_txs {
@@ -564,7 +581,9 @@ impl BatchSandwich {
                 .unwrap_or_default();
             token_balances.insert(*token, token_balance);
         }
-
+        if owner.is_some() {
+            info!("Now: after victim calc {:?}", now.elapsed());
+        }
         simulator.set_base_fee(base_fee);
 
         let backrun_calldata =
@@ -594,7 +613,9 @@ impl BatchSandwich {
         };
 
         simulator.set_base_fee(U256::zero());
-
+        if owner.is_some() {
+            info!("Now: after backrun {:?}", now.elapsed());
+        }
         let eth_balance_after = simulator.get_eth_balance_of(simulator.owner);
         let mut mc_balances_after = HashMap::new();
         for (main_currency, _) in &starting_mc_values {
@@ -644,6 +665,9 @@ impl BatchSandwich {
         let gas_cost = eth_used_as_gas_i256.as_i128();
         let revenue = profit - gas_cost;
 
+        if owner.is_some() {
+            info!("Now: after profit calculations {:?}", now.elapsed());
+        }
         let simulated_sandwich = SimulatedSandwich {
             revenue,
             profit,
