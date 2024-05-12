@@ -215,18 +215,16 @@ impl Executor {
         let to = NameOrAddress::Address(self.bot_address);
         let front_nonce = common.1;
         let back_nonce = front_nonce + U256::from(1); // should increase nonce by 1
-
+        let front_max_fee = U256::from(front_gas_limit) + max_priority_fee_per_gas;
         let frontrun_tx = TypedTransaction::Eip1559(Eip1559TransactionRequest {
             to: Some(to.clone()),
             from: Some(common.0),
             data: Some(front_calldata),
             value: Some(U256::zero()),
             chain_id: Some(common.2),
-            max_priority_fee_per_gas: Some(
-                max_priority_fee_per_gas.to_owned() + 10_000_000_000 as u64,
-            ),
-            max_fee_per_gas: Some(base_fee),
-            gas: Some(U256::from(front_gas_limit + 10_000 as u64)),
+            max_priority_fee_per_gas: Some(max_priority_fee_per_gas),
+            max_fee_per_gas: Some(front_max_fee),
+            gas: Some(U256::from(front_gas_limit)),
             nonce: Some(front_nonce),
             access_list: front_access_list,
         });
@@ -236,9 +234,9 @@ impl Executor {
             data: Some(back_calldata),
             value: Some(U256::zero()),
             chain_id: Some(common.2),
-            max_priority_fee_per_gas: Some(max_priority_fee_per_gas + 10_000_000_000 as u64),
+            max_priority_fee_per_gas: Some(max_priority_fee_per_gas),
             max_fee_per_gas: Some(max_fee_per_gas),
-            gas: Some(U256::from(back_gas_limit + 10_000 as u64)),
+            gas: Some(U256::from(back_gas_limit)),
             nonce: Some(back_nonce),
             access_list: back_access_list,
         });
