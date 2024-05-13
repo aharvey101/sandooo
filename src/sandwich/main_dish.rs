@@ -247,10 +247,10 @@ pub async fn main_dish(
             continue;
         }
         // set limit as 30% above what we simulated
-        let front_gas_limit = (simulated_sandwich.front_gas_used * 13) / 10;
-        let back_gas_limit = (simulated_sandwich.back_gas_used * 13) / 10;
+        let front_gas_limit = (simulated_sandwich.front_gas_used * 12) / 10;
+        let back_gas_limit = (simulated_sandwich.back_gas_used * 12) / 10;
 
-        let realistic_back_gas_limit = (simulated_sandwich.back_gas_used * 105) / 100;
+        let realistic_back_gas_limit = (simulated_sandwich.back_gas_used * 102) / 100;
         let max_priority_fee_per_gas = bribe_amount / U256::from(realistic_back_gas_limit);
         let max_fee_per_gas = base_fee + max_priority_fee_per_gas;
 
