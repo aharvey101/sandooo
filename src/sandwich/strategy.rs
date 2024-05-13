@@ -210,7 +210,7 @@ pub async fn run_sandwich_strategy(provider: Arc<Provider<Ws>>, event_sender: Se
                                 &new_block,
                                 owner,
                                 bot_address,
-                                U256::from(9900), // 99%
+                                U256::from(9500), // 99%
                                 &promising_sandwiches,
                                 &mut simulated_bundle_ids,
                                 &pending_txs,
