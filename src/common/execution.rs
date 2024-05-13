@@ -216,6 +216,7 @@ impl Executor {
         let front_nonce = common.1;
         let back_nonce = front_nonce + U256::from(1); // should increase nonce by 1
         let max_prio_fee = max_priority_fee_per_gas / 2;
+        let max_fee_per_gas = base_fee + max_prio_fee.to_owned();
 
         let frontrun_tx = TypedTransaction::Eip1559(Eip1559TransactionRequest {
             to: Some(to.clone()),
@@ -224,7 +225,7 @@ impl Executor {
             value: Some(U256::zero()),
             chain_id: Some(common.2),
             max_priority_fee_per_gas: Some(max_prio_fee.to_owned()),
-            max_fee_per_gas: Some(max_fee_per_gas.to_owned()),
+            max_fee_per_gas: Some(max_fee_per_gas),
             gas: Some(U256::from(front_gas_limit)),
             nonce: Some(front_nonce),
             access_list: front_access_list,
