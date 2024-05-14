@@ -641,7 +641,8 @@ impl BatchSandwich {
 
         let profit = (weth_after_i256 - weth_before_i256).as_i128();
         let gas_cost = eth_used_as_gas_i256.as_i128();
-        let revenue = profit - gas_cost;
+        // NOTE: decreasing the profit to test higher threshhold for revenue
+        let revenue = ((profit * 99) / 100) - gas_cost;
 
         let simulated_sandwich = SimulatedSandwich {
             revenue,
