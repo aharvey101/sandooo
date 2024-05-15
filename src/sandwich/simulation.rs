@@ -642,7 +642,7 @@ impl BatchSandwich {
         let profit = (weth_after_i256 - weth_before_i256).as_i128();
         let gas_cost = eth_used_as_gas_i256.as_i128();
         // NOTE: decreasing the profit to test higher threshhold for revenue
-        let revenue = ((profit * 95) / 100) - gas_cost;
+        let revenue = profit - gas_cost;
         // info!("Revenue: {:?}", revenue.clone());
         if owner.is_some() {
             info!("Revenue: {:?}", revenue.clone())
