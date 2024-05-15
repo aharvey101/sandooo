@@ -126,7 +126,6 @@ pub async fn run_sandwich_strategy(provider: Arc<Provider<Ws>>, event_sender: Se
                     let already_received = pending_txs.contains_key(&tx_hash);
 
                     let mut should_add = false;
-
                     if !already_received {
                         let tx_receipt = provider.get_transaction_receipt(tx_hash).await;
                         match tx_receipt {
