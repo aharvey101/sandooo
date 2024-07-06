@@ -1,9 +1,13 @@
 [profile.default]
-solc_version = '0.8.20'
-auto_detect_solc = false
-viaIR = true
-optimizer = true
-optimizer_runs = 200
+src = "src"
+out = "out"
+libs = ["lib"]
+# solc_version = "0.8.24"
+# auto_detect_solc = false
 remappings = [
-  "forge-std/=lib/forge-std/src/",
+    "@uniswap=lib",
+    "@openzeppelin/contracts/token/ERC20=lib/openzeppelin-contracts/contracts/interfaces/",
 ]
+[profile]
+
+# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

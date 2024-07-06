@@ -1,11 +1,21 @@
 use anyhow::{anyhow, Result};
+use eth_encode_packed::ethabi::ethereum_types::{H160 as eH160, U256 as eU256};
+use eth_encode_packed::{SolidityDataType, TakeLastXBytes};
+use ethers::abi::{decode, AbiEncode, ParamType};
+use ethers::contract::Abigen;
 use ethers::prelude::abi;
 use ethers::providers::Middleware;
-use ethers::types::{transaction::eip2930::AccessList, H160, H256, U256, U64};
+use ethers::solc::Solc;
+use ethers::types::I256;
+use ethers::types::{transaction::eip2930::AccessList, Bytes, H160, H256, U256, U64};
+use ethers_contract::BaseContract;
+use ethers_core::k256::elliptic_curve::group::WnafBase;
 use foundry_evm_mini::evm::executor::fork::{BlockchainDb, BlockchainDbMeta, SharedBackend};
 use foundry_evm_mini::evm::executor::inspector::{get_precompiles_for, AccessListTracer};
-use revm::primitives::bytes::Bytes as rBytes;
-use revm::primitives::{Bytes, Log, B160};
+use revm::primitives::bytes::{Buf, Bytes as rBytes};
+use revm::primitives::hex_literal::hex;
+use revm::primitives::ruint::aliases::U160;
+use revm::primitives::{Log, B160};
 use revm::{
     db::{CacheDB, Database},
     primitives::{
@@ -17,6 +27,8 @@ use std::{collections::BTreeSet, default::Default, str::FromStr, sync::Arc};
 
 use crate::common::abi::Abi;
 use crate::common::constants::COINBASE;
+use crate::common::token::dai_pool::dai_pool;
+use crate::common::token::SwapCall;
 use crate::common::utils::{access_list_to_revm, create_new_wallet};
 
 #[derive(Debug, Clone, Default)]
@@ -24,7 +36,7 @@ pub struct VictimTx {
     pub tx_hash: H256,
     pub from: H160,
     pub to: H160,
-    pub data: Bytes,
+    pub data: rBytes,
     pub value: U256,
     pub gas_price: U256,
     pub gas_limit: Option<u64>,
@@ -199,7 +211,6 @@ impl<M: Middleware + 'static> EvmSimulator<M> {
                 .map_err(|e| anyhow!("EVM staticcall failed: {:?}", e))?;
             result = ref_tx.result;
         }
-
         let output = match result {
             ExecutionResult::Success {
                 gas_used,
@@ -249,6 +260,7 @@ impl<M: Middleware + 'static> EvmSimulator<M> {
             .as_mut()
             .unwrap()
             .insert_account_info(target.into(), account_info);
+        println!("After insert....");
     }
 
     pub fn insert_account_storage(
@@ -278,6 +290,7 @@ impl<M: Middleware + 'static> EvmSimulator<M> {
     pub fn set_eth_balance(&mut self, target: H160, amount: U256) {
         let user_balance = amount.into();
         let user_info = AccountInfo::new(user_balance, 0, B256::zero(), Bytecode::default());
+        println!(" before insert...");
         self.insert_account_info(target.into(), user_info);
     }
 
@@ -342,6 +355,7 @@ impl<M: Middleware + 'static> EvmSimulator<M> {
                 abi::Token::Uint(U256::from(i)),
             ]));
             let slot: rU256 = U256::from(slot).into();
+            println!("slot: {:?}", slot);
             match token_touched_storage.get(&slot) {
                 Some(_) => {
                     return Ok(i);
@@ -352,4 +366,80 @@ impl<M: Middleware + 'static> EvmSimulator<M> {
 
         Ok(-1)
     }
+    pub fn create_v3_pool_swap_data(
+        &mut self,
+        target_pool: H160,
+        token_in: H160,
+        token_out: H160,
+        amount_in: U256,
+    ) -> Result<rBytes> {
+        // encode data
+        // THIS WILL Change to use a predefined abi
+        print!("Before Creating e's");
+        let (target_pool, token_in, token_out, amount_in) = (
+            eH160::from_str(&format!("{:?}", target_pool)).unwrap(),
+            eH160::from_str(&format!("{:?}", token_in)).unwrap(),
+            eH160::from_str(&format!("{:?}", token_out)).unwrap(),
+            eU256::from_str(&format!("{:?}", amount_in)).unwrap(),
+        );
+        println!("taret_pool... {:?}", target_pool);
+        let data = vec![
+            // like DynSolType but with SolidityDataType
+            SolidityDataType::Address(target_pool),
+            SolidityDataType::Number(eU256::zero()),
+            SolidityDataType::Address(token_in),
+            SolidityDataType::Address(token_out),
+            SolidityDataType::NumberWithShift(amount_in, TakeLastXBytes(256)),
+        ];
+
+        // encode said data
+        println!("Data?");
+        let encoded_data = eth_encode_packed::abi::encode_packed(&data);
+        println!("encoded data... {:?}", encoded_data);
+
+        println!("Before creating bytes?");
+        let r_bytes = rBytes::try_from(encoded_data.1).unwrap();
+        println!("R Bytes: {:?}", r_bytes);
+        Ok(r_bytes)
+    }
+
+    // pub fn sell_eth(
+    //     &mut self,
+    //     eth_amount: U256,
+    //     pool_address: H160,
+    //     owner: H160,
+    //     latest_gas_price: U256,
+    //     gas_limit: U256,
+    //     provider: Arc<M>,
+    // ) -> Result<()> {
+    //     let amount_specified: I256 = I256::from(10) * I256::from(10).pow(18u32);
+    //     let sqrt_price_limit_x96: ethers_core::types::U256 =
+    //         U256::from(1500) * U256::from(10).pow(U256::from(18));
+
+    //     let r_data = SwapCall {
+    //         recipient: owner,
+    //         zero_for_one: false,
+    //         amount_specified,
+    //         sqrt_price_limit_x96: U256::from(0),
+    //         data: ethers::core::types::Bytes::default(),
+    //     };
+    //     println!("R Data: {:?}", r_data);
+    //     let encoded_data = r_data.encode();
+    //     let r_data = bytes::Bytes::copy_from_slice(&encoded_data);
+    //     println!("R Data: {:?}", r_data);
+    //     let tx = Tx {
+    //         caller: owner,
+    //         transact_to: pool_address,
+    //         value: U256::zero(),
+    //         data: r_data,
+    //         gas_limit: 1_000_000u64,
+    //         gas_price: U256::zero(),
+    //     };
+    //     match self.call(tx) {
+    //         Ok(res) => println!("SUCCESS: {:?}", res),
+    //         Err(err) => println!("Error {:?}", err),
+    //     }
+
+    //     Ok(())
+    // }
 }

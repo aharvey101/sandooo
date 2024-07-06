@@ -7,6 +7,7 @@ pub struct Abi {
     pub pair: BaseContract,
     pub token: BaseContract,
     pub sando_bot: BaseContract,
+    pub arboo_bot: BaseContract,
 }
 
 impl Abi {
@@ -44,11 +45,15 @@ impl Abi {
             parse_abi(&["function recoverToken(address,uint256) public"]).unwrap(),
         );
 
+        // ) external
+        let arboo_bot = BaseContract::from(parse_abi(&["function flashSwap_V3_to_V2(address pool0, uint24 fee1, address tokenIn, address tokenOut, uint256 amountIn) external"]).unwrap());
+
         Self {
             factory,
             pair,
             token,
             sando_bot,
+            arboo_bot,
         }
     }
 }

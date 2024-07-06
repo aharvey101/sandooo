@@ -1,5 +1,5 @@
 [package]
-name = "sandooo"
+name = "arboo"
 version = "0.1.0"
 edition = "2021"
 
@@ -24,6 +24,7 @@ async-trait = "0.1.74"
 
 ethers-core = "2.0"
 ethers-providers = "2.0"
+ethers-contract-abigen = { version = "2.0.14", features = ["online"] }
 ethers-contract = "2.0"
 ethers = { version = "2.0", features = ["abigen", "ws", "ipc"] }
 
@@ -35,12 +36,9 @@ rlp = { version = "0.5", features = ["derive"] }
 foundry-evm-mini = { git = "https://github.com/solidquant/foundry-evm-mini.git" }
 
 revm = { version = "3", default-features = false, features = [
-  "std",
-  "serde",
-  "memory_limit",
-  "optional_eip3607",
-  "optional_block_gas_limit",
-  "optional_no_base_fee",
+    "std",
+    "serde",
+    "memory_limit",
 ] }
 
 csv = "1.2.2"
@@ -50,6 +48,8 @@ fern = { version = "0.6.2", features = ["colored"] }
 chrono = "0.4.23"
 indicatif = "0.17.5"
 home = "0.5.9"
+hex = "0.4.3"
+bytes = "1.6.0"
 
 [patch.crates-io]
 revm = { git = "https://github.com/bluealloy/revm/", rev = "80c909d6f242886cb26e6103a01d1a4bf9468426" }

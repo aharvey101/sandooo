@@ -164,12 +164,14 @@ pub async fn load_all_pools(
     let provider = Arc::new(Provider::new(ws));
 
     // Uniswap V2
+
     let pair_created_event = "PairCreated(address,address,address,uint256)";
 
     let abi = parse_abi(&[&format!("event {}", pair_created_event)]).unwrap();
 
     let pair_created_signature = abi.event("PairCreated").unwrap().signature();
 
+    println!("pair_created_sig: {:?}", pair_created_signature);
     let mut id = if pools.len() > 0 {
         pools.last().as_ref().unwrap().id as i64
     } else {
@@ -266,8 +268,10 @@ pub async fn load_uniswap_v2_pools(
         .from_block(U64::from(from_block))
         .to_block(U64::from(to_block))
         .event(event);
+    println!("event filter {:?}", event_filter);
     let logs = provider.get_logs(&event_filter).await?;
 
+    println!("logs: {:?}", logs.clone());
     for log in logs {
         let topic = log.topics[0];
         let block_number = log.block_number.unwrap_or_default();
